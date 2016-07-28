@@ -6,6 +6,8 @@ module Rack
   # can get away with rack-rewrite instead of writing Apache mod_rewrite rules.  
   class Rewrite
     def initialize(app, given_options = {}, &rule_block)
+      @skip_rack_redirect_condition = given_options.delete(:skip_rack_redirect_condition)
+
       options = {
           :klass => RuleSet,
           :options => {}
@@ -16,10 +18,12 @@ module Rack
     end
     
     def call(env)
-      if matched_rule = find_first_matching_rule(env)
-        rack_response = matched_rule.apply!(env)
-        # Don't invoke the app if applying the rule returns a rack response
-        return rack_response unless rack_response === true
+      if !@skip_rack_redirect_condition || (@skip_rack_redirect_condition && !@skip_rack_redirect_condition.call(env: env))
+        if matched_rule = find_first_matching_rule(env)
+          rack_response = matched_rule.apply!(env)
+          # Don't invoke the app if applying the rule returns a rack response
+          return rack_response unless rack_response === true
+        end
       end
       @app.call(env)
     end
