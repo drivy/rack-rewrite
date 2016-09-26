@@ -6,6 +6,7 @@ module Rack
       attr_reader :rules
       def initialize(options = {})#:nodoc:
         @rules = []
+        @block_options = {}
       end
 
       protected
@@ -97,8 +98,16 @@ module Rack
           add_rule :send_data, *args
         end
 
+        def with_options(options, &block)
+          old_options = @block_options
+          @block_options = @block_options.merge(options)
+          yield
+          @block_options = old_options
+        end
+
       private
         def add_rule(method, from, to, options = {}) #:nodoc:
+          options = @block_options.merge(options)
           @rules << Rule.new(method.to_sym, from, to, options)
         end
 
